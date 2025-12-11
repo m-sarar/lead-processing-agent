@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { formSchema } from '@/lib/types';
 import { toast } from 'sonner';
+import { getPhoneticTranscription } from '@/lib/phonetics';
 
 export function LeadForm() {
   const form = useForm<z.infer<typeof formSchema>>({
@@ -31,9 +32,13 @@ export function LeadForm() {
   });
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
+    const phoneticName = getPhoneticTranscription(data.name);
     const response = await fetch('/api/submit', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify({
+        ...data,
+        phoneticName
+      })
     });
 
     if (response.ok) {
@@ -94,7 +99,19 @@ export function LeadForm() {
                       aria-invalid={fieldState.invalid}
                       placeholder="John Doe"
                       autoComplete="name"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        const phonetic = getPhoneticTranscription(e.target.value);
+                        if (phonetic) {
+                          console.log(`Phonetic transcription: ${phonetic}`);
+                        }
+                      }}
                     />
+                    {field.value && (
+                      <FieldDescription>
+                        Phonetic: {getPhoneticTranscription(field.value)}
+                      </FieldDescription>
+                    )}
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
                     )}
