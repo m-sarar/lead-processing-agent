@@ -22,6 +22,7 @@ class Database {
         $this->createCategoriesTable();
         $this->createCommentsTable();
         $this->createLikesTable();
+        $this->createPasswordResetsTable(); // Added password_resets table
     }
 
     /**
@@ -135,6 +136,22 @@ class Database {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY (track_id, user_id),
             FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+        $this->conn->query($sql);
+    }
+
+    /**
+     * Create password_resets table (NEW)
+     */
+    private function createPasswordResetsTable() {
+        $sql = "CREATE TABLE IF NOT EXISTS password_resets (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            token VARCHAR(255) NOT NULL,
+            expires DATETIME NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
@@ -301,6 +318,44 @@ class Database {
         }
 
         return $tracks;
+    }
+
+    /**
+     * Check if password reset token is valid
+     */
+    public function isValidResetToken($token) {
+        $stmt = $this->conn->prepare("SELECT user_id FROM password_resets WHERE token = ? AND expires > NOW()");
+        $stmt->bind_param('s', $token);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        return $result->num_rows > 0;
+    }
+
+    /**
+     * Get user ID from reset token
+     */
+    public function getUserIdFromToken($token) {
+        $stmt = $this->conn->prepare("SELECT user_id FROM password_resets WHERE token = ? AND expires > NOW()");
+        $stmt->bind_param('s', $token);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            return $row['user_id'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Delete used reset token
+     */
+    public function deleteResetToken($token) {
+        $stmt = $this->conn->prepare("DELETE FROM password_resets WHERE token = ?");
+        $stmt->bind_param('s', $token);
+        return $stmt->execute();
     }
 
     public function __destruct() {
