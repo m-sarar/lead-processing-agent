@@ -93,6 +93,9 @@ export const fetchUrl = tool({
     url: z.string().describe('Absolute URL, including http:// or https://')
   }),
   execute: async ({ url }) => {
+    if (!exa) {
+      return 'Exa API key not configured. Please set EXA_API_KEY environment variable.';
+    }
     const result = await exa.getContents(url, {
       text: true
     });
@@ -157,6 +160,9 @@ const search = tool({
       .describe('The category of the result you are looking for')
   }),
   execute: async ({ keywords, resultCategory }) => {
+    if (!exa) {
+      return 'Exa API key not configured. Please set EXA_API_KEY environment variable.';
+    }
     /**
      * Deep research using exa.ai
      * Return the results in markdown format
